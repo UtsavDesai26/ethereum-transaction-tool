@@ -26,9 +26,13 @@ const Welcome = () => {
     connectWallet,
     currentAccount,
     formData,
+    requestData,
     sendTransaction,
+    requestETH,
     handleChange,
+    handleRequestChange,
     isLoading,
+    isRequestLoading,
     currentBalance,
   } = useContext(TransactionContext);
 
@@ -39,6 +43,15 @@ const Welcome = () => {
     if (!addressTo || !amount || !message) return;
 
     sendTransaction();
+  };
+
+  const handleRequestSubmit = (e) => {
+    const { addressFrom, amount, message } = requestData;
+    e.preventDefault();
+
+    if (!addressFrom || !amount || !message) return;
+
+    requestETH();
   };
 
   return (
@@ -65,18 +78,7 @@ const Welcome = () => {
             </button>
           )}
 
-          <div className="grid sm:grid-cols-3 grid-cols-2 w-full mt-10">
-            <div className={`rounded-tl-2xl ${commonStyles}`}>Reliability</div>
-            <div className={commonStyles}>Security</div>
-            <div className={`sm:rounded-tr-2xl ${commonStyles}`}>Ethereum</div>
-            <div className={`sm:rounded-bl-2xl ${commonStyles}`}>Web 3.0</div>
-            <div className={commonStyles}>Low fees</div>
-            <div className={`rounded-br-2xl ${commonStyles}`}>Blockchain</div>
-          </div>
-        </div>
-
-        <div className="flex flex-col flex-1 items-center justify-start w-full mf:mt-0 mt-10">
-          <div className="p-3 flex justify-end items-start flex-col rounded-xl h-40 sm:w-72 w-full my-5 eth-card .white-glassmorphism">
+          <div className="p-3 mt-14 flex justify-end items-start flex-col rounded-xl h-40 sm:w-72 w-full my-5 eth-card .white-glassmorphism">
             <div className="flex justify-between flex-col w-full h-full">
               <div className="flex justify-between items-start">
                 <div className="w-10 h-10 rounded-full border-2 border-white flex justify-center items-center">
@@ -98,7 +100,21 @@ const Welcome = () => {
             </div>
           </div>
 
+          <div className="grid sm:grid-cols-3 grid-cols-2 w-full mt-10">
+            <div className={`rounded-tl-2xl ${commonStyles}`}>Reliability</div>
+            <div className={commonStyles}>Security</div>
+            <div className={`sm:rounded-tr-2xl ${commonStyles}`}>Ethereum</div>
+            <div className={`sm:rounded-bl-2xl ${commonStyles}`}>Web 3.0</div>
+            <div className={commonStyles}>Low fees</div>
+            <div className={`rounded-br-2xl ${commonStyles}`}>Blockchain</div>
+          </div>
+        </div>
+
+        <div className="flex flex-col flex-1 items-center justify-start w-full mf:mt-0 mt-10">
           <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+            <h1 className="text-white text-lg font-semibold pb-6">
+              Send Crypto
+            </h1>
             <Input
               placeholder="Address To"
               name="addressTo"
@@ -129,6 +145,43 @@ const Welcome = () => {
                 className="text-white w-full mt-10 mb-5 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
               >
                 Send Now
+              </button>
+            )}
+          </div>
+          <div className="p-5 mt-10 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+            <h1 className="text-white text-lg font-semibold pb-6">
+              Request ETH
+            </h1>
+            <Input
+              placeholder="Address From"
+              name="addressFrom"
+              type="text"
+              handleChange={handleRequestChange}
+            />
+            <Input
+              placeholder="Amount (ETH)"
+              name="amount"
+              type="number"
+              handleChange={handleRequestChange}
+            />
+            <Input
+              placeholder="Message"
+              name="message"
+              type="text"
+              handleChange={handleRequestChange}
+            />
+
+            <div className="h-[1px] w-full bg-gray-400 my-2" />
+
+            {isRequestLoading ? (
+              <Loader />
+            ) : (
+              <button
+                type="button"
+                onClick={handleRequestSubmit}
+                className="text-white w-full mt-10 mb-5 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+              >
+                Request Now
               </button>
             )}
           </div>

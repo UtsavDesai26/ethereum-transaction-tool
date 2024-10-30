@@ -25,6 +25,11 @@ export const TransactionsProvider = ({ children }) => {
     amount: "",
     message: "",
   });
+  const [requestData, setRequestData] = useState({
+    addressFrom: "",
+    amount: "",
+    message: "",
+  });
   const [currentAccount, setCurrentAccount] = useState("");
   const [currentBalance, setCurrentBalance] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,9 +37,18 @@ export const TransactionsProvider = ({ children }) => {
     localStorage.getItem("transactionCount")
   );
   const [transactions, setTransactions] = useState([]);
+  const [isRequestLoading, setIsRequestLoading] = useState(false);
+  const [requestCount, setRequestCount] = useState(
+    localStorage.getItem("requestCount")
+  );
+  const [requests, setRequests] = useState([]);
 
   const handleChange = (e, name) => {
     setformData((prevState) => ({ ...prevState, [name]: e.target.value }));
+  };
+
+  const handleRequestChange = (e, name) => {
+    setRequestData((prevState) => ({ ...prevState, [name]: e.target.value }));
   };
 
   const updateBalance = async (account) => {
@@ -52,10 +66,8 @@ export const TransactionsProvider = ({ children }) => {
     try {
       if (ethereum) {
         const transactionsContract = createEthereumContract();
-
         const availableTransactions =
           await transactionsContract.getAllTransactions();
-
         const structuredTransactions = availableTransactions.map(
           (transaction) => ({
             addressTo: transaction.receiver,
@@ -77,6 +89,31 @@ export const TransactionsProvider = ({ children }) => {
     }
   };
 
+  const getAllRequests = async () => {
+    try {
+      if (ethereum) {
+        const transactionsContract = createEthereumContract();
+        const availableRequests = await transactionsContract.getAllRequests();
+        const structuredRequests = availableRequests.map((request) => ({
+          addressFrom: request.sender,
+          addressTo: request.receiver,
+          timestamp: new Date(
+            request.timestamp.toNumber() * 1000
+          ).toLocaleString(),
+          message: request.message,
+          amount: parseInt(request.amount._hex) / 10 ** 18,
+          requestId: request.id.toNumber(),
+        }));
+
+        setRequests(structuredRequests);
+      } else {
+        console.log("Ethereum is not present");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const checkIfWalletIsConnect = async () => {
     try {
       if (!ethereum) return alert("Please install MetaMask.");
@@ -85,8 +122,8 @@ export const TransactionsProvider = ({ children }) => {
 
       if (accounts.length) {
         setCurrentAccount(accounts[0]);
-
         getAllTransactions();
+        getAllRequests();
         await updateBalance(accounts[0]);
       } else {
         console.log("No accounts found");
@@ -112,6 +149,20 @@ export const TransactionsProvider = ({ children }) => {
       console.log(error);
 
       throw new Error("No ethereum object");
+    }
+  };
+
+  const checkIfRequestsExists = async () => {
+    try {
+      if (ethereum) {
+        const transactionsContract = createEthereumContract();
+        const currentRequestCount =
+          await transactionsContract.getRequestCount();
+
+        window.localStorage.setItem("requestCount", currentRequestCount);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -184,22 +235,89 @@ export const TransactionsProvider = ({ children }) => {
     }
   };
 
+  const requestETH = async () => {
+    try {
+      if (ethereum) {
+        const { addressFrom, amount, message } = requestData;
+        const transactionsContract = createEthereumContract();
+        const parsedAmount = ethers.utils.parseEther(amount);
+
+        const requestHash = await transactionsContract.requestETH(
+          addressFrom,
+          parsedAmount,
+          message
+        );
+
+        setIsRequestLoading(true);
+        console.log(`Requesting - ${requestHash.hash}`);
+        await requestHash.wait();
+        console.log(`Request Success - ${requestHash.hash}`);
+        setIsRequestLoading(false);
+
+        const requestCount = await transactionsContract.getRequestCount();
+        setRequestCount(requestCount.toNumber());
+        await updateBalance(currentAccount);
+      } else {
+        console.log("Ethereum is not present");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const approveRequest = async (requestId) => {
+    try {
+      if (ethereum) {
+        const transactionsContract = createEthereumContract();
+        const approveHash = await transactionsContract.approveRequest(
+          requestId
+        );
+
+        setIsApproveLoading(true);
+        console.log(`Approving - ${approveHash.hash}`);
+        await approveHash.wait();
+        console.log(`Approve Success - ${approveHash.hash}`);
+        setIsApproveLoading(false);
+
+        const requestCount = await transactionsContract.getRequestCount();
+        setRequestCount(requestCount.toNumber());
+
+        getAllRequests();
+      } else {
+        console.log("Ethereum is not present");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     checkIfWalletIsConnect();
     checkIfTransactionsExists();
   }, [transactionCount]);
 
+  useEffect(() => {
+    checkIfRequestsExists();
+  }, [requestCount]);
+
   return (
     <TransactionContext.Provider
       value={{
         transactionCount,
+        requestCount,
         connectWallet,
         transactions,
+        requests,
         currentAccount,
         isLoading,
+        isRequestLoading,
         sendTransaction,
+        requestETH,
+        approveRequest,
         handleChange,
+        handleRequestChange,
         formData,
+        requestData,
         currentBalance,
       }}
     >

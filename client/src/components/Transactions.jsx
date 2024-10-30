@@ -94,25 +94,27 @@ const Transactions = () => {
                 <TransactionCard key={i} {...transaction} />
               ))}
             </div>
-            <div className="flex justify-between mt-5">
-              <button
-                onClick={prevPage}
-                disabled={currentPage === 1}
-                className="py-2 px-5 mx-4 rounded-full cursor-pointer bg-gradient-to-r from-blue-300 to-blue-500 hover:from-sky-400 hover:via-rose-400 hover:to-lime-400"
-              >
-                Previous
-              </button>
-              <span className="text-white">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={nextPage}
-                disabled={currentPage === totalPages}
-                className="py-2 px-5 mx-4 rounded-full cursor-pointer bg-gradient-to-r from-blue-300 to-blue-500 hover:from-sky-400 hover:via-rose-400 hover:to-lime-400"
-              >
-                Next
-              </button>
-            </div>
+            {transactions.length > itemsPerPage && (
+              <div className="flex justify-between mt-5">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className="py-2 px-5 mx-4 rounded-full cursor-pointer bg-gradient-to-r from-blue-300 to-blue-500 hover:from-sky-400 hover:via-rose-400 hover:to-lime-400"
+                >
+                  Previous
+                </button>
+                <span className="text-white">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className="py-2 px-5 mx-4 rounded-full cursor-pointer bg-gradient-to-r from-blue-300 to-blue-500 hover:from-sky-400 hover:via-rose-400 hover:to-lime-400"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <h3 className="text-white text-3xl text-center my-2">
