@@ -1,5 +1,12 @@
-import { Navbar, Welcome, Footer, Services, Transactions } from "./components";
-import { Element } from "react-scroll"; // Import Element
+import {
+  Navbar,
+  Welcome,
+  Footer,
+  Services,
+  Transactions,
+  Requests,
+} from "./components";
+import { Element } from "react-scroll";
 
 const App = () => {
   return (
@@ -11,6 +18,10 @@ const App = () => {
 
       <Element name="transactions">
         <Transactions />
+      </Element>
+
+      <Element name="requests">
+        <Requests />
       </Element>
 
       <Element name="services">

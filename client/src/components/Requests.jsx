@@ -1,16 +1,17 @@
-import React, { useState, useContext } from "react ";
-
+import React, { useContext, useState } from "react";
 import { TransactionContext } from "../context/TransactionContext";
 import { shortenAddress } from "../utils/shortenAddress";
 
-const TransactionCard = ({
-  addressTo,
+const RequestCard = ({
   addressFrom,
-  timestamp,
-  message,
   amount,
-  url,
+  message,
+  approved,
+  fulfilled,
+  index,
 }) => {
+  const { approveRequest, fulfillRequest } = useContext(TransactionContext);
+
   return (
     <div
       className="bg-[#181918] m-4 flex flex-1
@@ -29,48 +30,54 @@ const TransactionCard = ({
             rel="noopener noreferrer"
           >
             <p className="text-white text-base hover:text-[#49bce6]">
-              From: {shortenAddress(addressFrom)}
+              <strong>Requester:</strong> {shortenAddress(addressFrom)}
             </p>
           </a>
-          <a
-            href={`https://sepolia.etherscan.io/address/${addressTo}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <p className="text-white text-base hover:text-[#49bce6]">
-              To: {shortenAddress(addressTo)}
-            </p>
-          </a>
-          <p className="text-white text-base">Amount: {amount} ETH</p>
-          {message && (
-            <>
-              <br />
-              <p className="text-white text-base">Message: {message}</p>
-            </>
+          <p className="text-white">
+            <strong>Amount:</strong> {amount} ETH
+          </p>
+          <p className="text-white">
+            <strong>Message:</strong> {message}
+          </p>
+          <p className="text-white mb-2">
+            <strong>Status:</strong>{" "}
+            {approved ? (fulfilled ? "Fulfilled" : "Approved") : "Pending"}
+          </p>
+          {!approved && !fulfilled && (
+            <button
+              onClick={() => approveRequest(index)}
+              className="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Approve
+            </button>
           )}
-
-          <div className="bg-black p-3 px-5 w-max rounded-xl mt-5 shadow-2xl">
-            <p className="text-[#37c7da] font-bold ">{timestamp}</p>
-          </div>
+          {approved && !fulfilled && (
+            <button
+              onClick={() => fulfillRequest(index, amount)}
+              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Fulfill
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const Transactions = () => {
-  const { currentAccount, transactions } = useContext(TransactionContext);
+const Requests = () => {
+  const { currentAccount, requests } = useContext(TransactionContext);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const totalPages = Math.ceil(requests.length / itemsPerPage);
 
-  const indexOfLastTransaction = currentPage * itemsPerPage;
-  const indexOfFirstTransaction = indexOfLastTransaction - itemsPerPage;
-  const currentTransactions = transactions.slice(
-    indexOfFirstTransaction,
-    indexOfLastTransaction
+  const indexOfLastRequest = currentPage * itemsPerPage;
+  const indexOfFirstRequest = indexOfLastRequest - itemsPerPage;
+  const currentRequests = requests.slice(
+    indexOfFirstRequest,
+    indexOfLastRequest
   );
 
   const nextPage = () => {
@@ -87,14 +94,14 @@ const Transactions = () => {
         {currentAccount ? (
           <div>
             <h3 className="text-white text-3xl text-center my-2">
-              Recent Transactions
+              Recent Requests
             </h3>
             <div className="flex flex-wrap justify-center items-center mt-10">
-              {currentTransactions.reverse().map((transaction, i) => (
-                <TransactionCard key={i} {...transaction} />
+              {currentRequests.reverse().map((request, i) => (
+                <RequestCard key={i} {...request} index={i} />
               ))}
             </div>
-            {transactions.length > itemsPerPage && (
+            {requests.length > itemsPerPage && (
               <div className="flex justify-between mt-5">
                 <button
                   onClick={prevPage}
@@ -117,13 +124,13 @@ const Transactions = () => {
             )}
           </div>
         ) : (
-          <h3 className="text-white text-3xl text-center my-2">
-            Connect Wallet To See Recent Transactions
-          </h3>
+          <div className="text-white text-2xl text-center">
+            Connect your wallet to view requests
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default Transactions;
+export default Requests;

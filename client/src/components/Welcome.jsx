@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { AiFillPlayCircle } from "react-icons/ai";
 import { SiEthereum } from "react-icons/si";
 import { BsInfoCircle } from "react-icons/bs";
@@ -30,9 +30,18 @@ const Welcome = () => {
     handleChange,
     isLoading,
     currentBalance,
+    requestData,
+    requestETH,
+    handleRequestChange,
+    requests,
+    approveRequest,
+    fulfillRequest,
+    isLoadingRequest, // Optional: You can manage separate loading states
   } = useContext(TransactionContext);
 
-  const handleSubmit = (e) => {
+  const [activeTab, setActiveTab] = useState("send"); // Manage active tab: 'send' or 'request'
+
+  const handleSubmitSend = (e) => {
     const { addressTo, amount, message } = formData;
     e.preventDefault();
 
@@ -41,16 +50,27 @@ const Welcome = () => {
     sendTransaction();
   };
 
+  const handleSubmitRequest = (e) => {
+    const { addressFrom, amount, message } = requestData;
+    e.preventDefault();
+
+    if (!addressFrom || !amount || !message) return;
+
+    requestETH();
+  };
+
   return (
     <div className="flex w-full justify-center items-center">
       <div className="flex mf:flex-row flex-col items-start justify-between md:p-20 py-12 px-4">
+        {/* Left Section */}
         <div className="flex flex-1 justify-start items-start flex-col mf:mr-10">
           <h1 className="text-3xl sm:text-5xl text-white py-1">
-            Send Crypto <br /> around the world.
+            Send & Request Crypto <br /> around the world.
           </h1>
           <p className="text-left text-light mt-5 text-white font-light md:w-9/12 w-11/12 text-base">
-            Discover the power of crypto. Buy and sell cryptocurrencies easily
-            on Send Crypto. Sepolia Test Network*
+            Discover the power of crypto. Buy, sell, send, and request
+            cryptocurrencies easily on the ETH Request System. Sepolia Test
+            Network*
           </p>
           {!currentAccount && (
             <button
@@ -75,8 +95,10 @@ const Welcome = () => {
           </div>
         </div>
 
+        {/* Right Section */}
         <div className="flex flex-col flex-1 items-center justify-start w-full mf:mt-0 mt-10">
-          <div className="p-3 flex justify-end items-start flex-col rounded-xl h-40 sm:w-72 w-full my-5 eth-card .white-glassmorphism">
+          {/* Ethereum Card */}
+          <div className="p-3 flex justify-end items-start flex-col rounded-xl h-40 sm:w-72 w-full my-5 eth-card white-glassmorphism">
             <div className="flex justify-between flex-col w-full h-full">
               <div className="flex justify-between items-start">
                 <div className="w-10 h-10 rounded-full border-2 border-white flex justify-center items-center">
@@ -86,7 +108,9 @@ const Welcome = () => {
               </div>
               <div>
                 <p className="text-white font-light text-sm">
-                  {shortenAddress(currentAccount)}
+                  {currentAccount
+                    ? shortenAddress(currentAccount)
+                    : "Not Connected"}
                 </p>
                 <p className="text-white font-semibold text-lg mt-1">
                   {currentBalance} ETH
@@ -98,40 +122,108 @@ const Welcome = () => {
             </div>
           </div>
 
-          <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
-            <Input
-              placeholder="Address To"
-              name="addressTo"
-              type="text"
-              handleChange={handleChange}
-            />
-            <Input
-              placeholder="Amount (ETH)"
-              name="amount"
-              type="number"
-              handleChange={handleChange}
-            />
-            <Input
-              placeholder="Message"
-              name="message"
-              type="text"
-              handleChange={handleChange}
-            />
-
-            <div className="h-[1px] w-full bg-gray-400 my-2" />
-
-            {isLoading ? (
-              <Loader />
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="text-white w-full mt-10 mb-5 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
-              >
-                Send Now
-              </button>
-            )}
+          {/* Tabs for Send and Request */}
+          <div className="flex w-full justify-center mb-4">
+            <button
+              onClick={() => setActiveTab("send")}
+              className={`mr-2 px-4 py-2 rounded ${
+                activeTab === "send"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-700 text-gray-300"
+              }`}
+            >
+              Send ETH
+            </button>
+            <button
+              onClick={() => setActiveTab("request")}
+              className={`ml-2 px-4 py-2 rounded ${
+                activeTab === "request"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-700 text-gray-300"
+              }`}
+            >
+              Request ETH
+            </button>
           </div>
+
+          {/* Conditional Rendering Based on Active Tab */}
+          {activeTab === "send" ? (
+            <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+              <Input
+                placeholder="Address To"
+                name="addressTo"
+                type="text"
+                value={formData.addressTo}
+                handleChange={handleChange}
+              />
+              <Input
+                placeholder="Amount (ETH)"
+                name="amount"
+                type="number"
+                value={formData.amount}
+                handleChange={handleChange}
+              />
+              <Input
+                placeholder="Message"
+                name="message"
+                type="text"
+                value={formData.message}
+                handleChange={handleChange}
+              />
+
+              <div className="h-[1px] w-full bg-gray-400 my-2" />
+
+              {isLoading ? (
+                <Loader />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitSend}
+                  className="text-white w-full mt-10 mb-5 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                >
+                  Send Now
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
+              <Input
+                placeholder="Address From"
+                name="addressFrom"
+                type="text"
+                value={requestData.addressFrom}
+                handleChange={handleRequestChange}
+              />
+              <Input
+                placeholder="Amount (ETH)"
+                name="amount"
+                type="number"
+                value={requestData.amount}
+                handleChange={handleRequestChange}
+              />
+              <Input
+                placeholder="Message"
+                name="message"
+                type="text"
+                value={requestData.message}
+                handleChange={handleRequestChange}
+              />
+
+              <div className="h-[1px] w-full bg-gray-400 my-2" />
+
+              {isLoading ? (
+                <Loader />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitRequest}
+                  className="text-white w-full mt-10 mb-5 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer"
+                >
+                  Request ETH
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

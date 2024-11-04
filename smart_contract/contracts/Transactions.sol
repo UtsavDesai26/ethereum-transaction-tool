@@ -5,10 +5,23 @@ import "hardhat/console.sol";
 
 contract Transactions {
     uint256 transactionCount;
-    uint256 requestCount;
 
-    event Transfer(address from, address receiver, uint amount, string message, uint256 timestamp);
-    event RequestETH(address requester, address from, uint amount, string message, uint256 timestamp);
+    event Transfer(
+        address from,
+        address receiver,
+        uint amount,
+        string message,
+        uint256 timestamp
+    );
+    event RequestCreated(
+        address from,
+        address requester,
+        uint amount,
+        string message,
+        uint256 timestamp
+    );
+    event RequestApproved(address approver, address requester, uint amount);
+    event RequestFulfilled(address approver, address requester, uint amount);
 
     struct TransferStruct {
         address sender;
@@ -20,62 +33,99 @@ contract Transactions {
 
     struct RequestStruct {
         address requester;
-        address from;
         uint amount;
         string message;
-        uint256 timestamp;
+        bool approved;
         bool fulfilled;
+        uint256 timestamp;
     }
 
     TransferStruct[] transactions;
-    RequestStruct[] requests;
+    mapping(address => RequestStruct[]) public requests;
 
     // Add to blockchain and trigger a transfer event
-    function addToBlockchain(address payable receiver, uint amount, string memory message) public {
+    function addToBlockchain(
+        address payable receiver,
+        uint amount,
+        string memory message
+    ) public {
         transactionCount += 1;
-        transactions.push(TransferStruct(msg.sender, receiver, amount, message, block.timestamp));
+        transactions.push(
+            TransferStruct(
+                msg.sender,
+                receiver,
+                amount,
+                message,
+                block.timestamp
+            )
+        );
 
         emit Transfer(msg.sender, receiver, amount, message, block.timestamp);
     }
 
-    // Create a request for ETH from another account
-    function requestETH(address from, uint amount, string memory message) public {
-        requestCount += 1;
-        requests.push(RequestStruct(msg.sender, from, amount, message, block.timestamp, false));
+    // Create a request for ETH from a specific account
+    function createRequest(
+        address from,
+        uint amount,
+        string memory message
+    ) external {
+        require(amount > 0, "Amount must be greater than zero");
+        requests[from].push(
+            RequestStruct(
+                msg.sender,
+                amount,
+                message,
+                false,
+                false,
+                block.timestamp
+            )
+        );
 
-        emit RequestETH(msg.sender, from, amount, message, block.timestamp);
+        emit RequestCreated(from, msg.sender, amount, message, block.timestamp);
     }
 
-    // Approve and fulfill the ETH request by sending ETH to the requester
-    function approveRequest(uint requestId) public payable {
-        require(requestId < requestCount, "Request does not exist.");
-        RequestStruct storage request = requests[requestId];
+    // Approve an ETH request
+    function approveRequest(uint256 requestIndex) external {
+        RequestStruct storage request = requests[msg.sender][requestIndex];
+        require(!request.approved, "Request already approved");
+        require(!request.fulfilled, "Request already fulfilled");
 
-        // Check if the sender is the person from whom ETH was requested
-        require(msg.sender == request.from, "Only the requested address can approve the request.");
-        require(request.fulfilled == false, "Request has already been fulfilled.");
+        request.approved = true;
+        emit RequestApproved(msg.sender, request.requester, request.amount);
+    }
 
-        // Transfer ETH
-        require(msg.value == request.amount, "Insufficient ETH sent.");
+    // Fulfill an approved ETH request
+    function fulfillRequest(uint256 requestIndex) external payable {
+        RequestStruct storage request = requests[msg.sender][requestIndex];
+        require(request.approved, "Request not approved");
+        require(!request.fulfilled, "Request already fulfilled");
+        require(msg.value == request.amount, "Incorrect ETH amount");
 
-        payable(request.requester).transfer(msg.value);
         request.fulfilled = true;
+        payable(request.requester).transfer(msg.value);
 
-        // Record the transfer
+        // Log the transfer in transactions array
+        transactions.push(
+            TransferStruct(
+                msg.sender,
+                request.requester,
+                request.amount,
+                request.message,
+                block.timestamp
+            )
+        );
         transactionCount += 1;
-        transactions.push(TransferStruct(request.from, request.requester, request.amount, request.message, block.timestamp));
 
-        emit Transfer(request.from, request.requester, request.amount, request.message, block.timestamp);
+        emit RequestFulfilled(msg.sender, request.requester, msg.value);
     }
 
     // Retrieve all transactions
-    function getAllTransactions() public view returns (TransferStruct[] memory) {
+    function getAllTransactions()
+        public
+        view
+        returns (TransferStruct[] memory)
+    {
         return transactions;
-    }
-
-    // Retrieve all requests
-    function getAllRequests() public view returns (RequestStruct[] memory) {
-        return requests;
     }
 
     // Retrieve the transaction count
@@ -83,8 +133,10 @@ contract Transactions {
         return transactionCount;
     }
 
-    // Retrieve the request count
-    function getRequestCount() public view returns (uint256) {
-        return requestCount;
+    // Retrieve requests for a specific address
+    function getRequests(
+        address user
+    ) public view returns (RequestStruct[] memory) {
+        return requests[user];
     }
 }
