@@ -95,16 +95,13 @@ contract Transactions {
     }
 
     // Fulfill an approved ETH request
-    function fulfillRequest(uint256 requestIndex) external payable {
+    function fulfillRequest(uint256 requestIndex) external {
         RequestStruct storage request = requests[msg.sender][requestIndex];
         require(request.approved, "Request not approved");
         require(!request.fulfilled, "Request already fulfilled");
-        require(msg.value == request.amount, "Incorrect ETH amount");
 
         request.fulfilled = true;
-        payable(request.requester).transfer(msg.value);
 
-        // Log the transfer in transactions array
         transactions.push(
             TransferStruct(
                 msg.sender,
@@ -116,7 +113,7 @@ contract Transactions {
         );
         transactionCount += 1;
 
-        emit RequestFulfilled(msg.sender, request.requester, msg.value);
+        emit RequestFulfilled(msg.sender, request.requester, request.amount);
     }
 
     // Retrieve all transactions

@@ -89,11 +89,17 @@ const Transactions = () => {
             <h3 className="text-white text-3xl text-center my-2">
               Recent Transactions
             </h3>
-            <div className="flex flex-wrap justify-center items-center mt-10">
-              {currentTransactions.reverse().map((transaction, i) => (
-                <TransactionCard key={i} {...transaction} />
-              ))}
-            </div>
+            {transactions.length === 0 ? (
+              <div className="flex justify-center mt-5">
+                <span className="text-white">No Transactions</span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap justify-center items-center mt-10">
+                {currentTransactions.reverse().map((transaction, i) => (
+                  <TransactionCard key={i} {...transaction} />
+                ))}
+              </div>
+            )}
             {transactions.length > itemsPerPage && (
               <div className="flex justify-between mt-5">
                 <button
@@ -117,7 +123,7 @@ const Transactions = () => {
             )}
           </div>
         ) : (
-          <h3 className="text-white text-3xl text-center my-2">
+          <h3 className="h-48 text-white text-3xl text-center my-2">
             Connect Wallet To See Recent Transactions
           </h3>
         )}

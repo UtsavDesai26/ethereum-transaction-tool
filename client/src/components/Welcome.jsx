@@ -33,10 +33,7 @@ const Welcome = () => {
     requestData,
     requestETH,
     handleRequestChange,
-    requests,
-    approveRequest,
-    fulfillRequest,
-    isLoadingRequest, // Optional: You can manage separate loading states
+    isRequestLoading,
   } = useContext(TransactionContext);
 
   const [activeTab, setActiveTab] = useState("send"); // Manage active tab: 'send' or 'request'
@@ -211,7 +208,7 @@ const Welcome = () => {
 
               <div className="h-[1px] w-full bg-gray-400 my-2" />
 
-              {isLoading ? (
+              {isRequestLoading ? (
                 <Loader />
               ) : (
                 <button

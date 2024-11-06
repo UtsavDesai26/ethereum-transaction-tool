@@ -33,6 +33,9 @@ export const TransactionsProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState("");
   const [currentBalance, setCurrentBalance] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRequestLoading, setIsRequestLoading] = useState(false);
+  const [isApproveLoading, setIsApproveLoading] = useState(false);
+  const [isFulfillLoading, setIsFulfillLoading] = useState(false);
   const [transactionCount, setTransactionCount] = useState(
     localStorage.getItem("transactionCount")
   );
@@ -143,15 +146,17 @@ export const TransactionsProvider = ({ children }) => {
         const transactionsContract = createEthereumContract();
         const parsedAmount = ethers.utils.parseEther(amount);
 
-        await transactionsContract.createRequest(
+        const transactionHash = await transactionsContract.createRequest(
           addressFrom,
           parsedAmount,
           message
         );
 
-        alert("Request sent successfully!");
+        setIsRequestLoading(true);
+        await transactionHash.wait();
         await getAllRequests(currentAccount);
         await updateBalance(currentAccount);
+        setIsRequestLoading(false);
       } else {
         console.log("Ethereum is not present");
       }
@@ -165,11 +170,16 @@ export const TransactionsProvider = ({ children }) => {
     try {
       if (ethereum) {
         const transactionsContract = createEthereumContract();
-        await transactionsContract.approveRequest(requestIndex);
 
-        alert("Request approved successfully!");
+        const transactionHash = await transactionsContract.approveRequest(
+          requestIndex
+        );
+
+        setIsApproveLoading(true);
+        await transactionHash.wait();
         await getAllRequests(currentAccount);
         await updateBalance(currentAccount);
+        setIsApproveLoading(false);
       } else {
         console.log("Ethereum is not present");
       }
@@ -179,21 +189,35 @@ export const TransactionsProvider = ({ children }) => {
     }
   };
 
-  const fulfillRequest = async (requestIndex, amount) => {
+  const fulfillRequest = async (addressFrom, amount, requestIndex) => {
     try {
       if (ethereum) {
         const transactionsContract = createEthereumContract();
 
         const parsedAmount = ethers.utils.parseEther(amount.toString());
 
-        await transactionsContract.fulfillRequest(requestIndex, {
-          from: currentAccount,
-          value: parsedAmount._hex,
+        await ethereum.request({
+          method: "eth_sendTransaction",
+          params: [
+            {
+              from: currentAccount,
+              to: addressFrom,
+              gas: "0x5208",
+              value: parsedAmount.toHexString(),
+            },
+          ],
         });
 
-        alert("Request fulfilled successfully!");
+        const transactionHash = await transactionsContract.fulfillRequest(
+          requestIndex,
+          { value: parsedAmount.toHexString() }
+        );
+
+        setIsFulfillLoading(true);
+        await transactionHash.wait();
         await getAllRequests(currentAccount);
         await updateBalance(currentAccount);
+        setIsFulfillLoading(false);
       } else {
         console.log("Ethereum is not present");
       }
@@ -202,6 +226,44 @@ export const TransactionsProvider = ({ children }) => {
       throw new Error("No Ethereum object");
     }
   };
+
+  // const fulfillRequest = async (addressFrom, amount, message) => {
+  //   try {
+  //     if (ethereum) {
+  //       const transactionsContract = createEthereumContract();
+  //       const parsedAmount = ethers.utils.parseEther(amount.toString());
+
+  //       await ethereum.request({
+  //         method: "eth_sendTransaction",
+  //         params: [
+  //           {
+  //             from: currentAccount,
+  //             to: addressFrom,
+  //             gas: "0x5208",
+  //             value: parsedAmount._hex,
+  //           },
+  //         ],
+  //       });
+
+  //       const transactionHash = await transactionsContract.fulfillRequest(
+  //         addressFrom,
+  //         parsedAmount,
+  //         message
+  //       );
+
+  //       setIsFulfillLoading(true);
+  //       await transactionHash.wait();
+  //       await getAllRequests(currentAccount);
+  //       await updateBalance(currentAccount);
+  //       setIsFulfillLoading(false);
+  //     } else {
+  //       console.log("Ethereum is not present");
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw new Error("No Ethereum object");
+  //   }
+  // };
 
   const connectWallet = async () => {
     try {
@@ -281,6 +343,9 @@ export const TransactionsProvider = ({ children }) => {
         requests,
         currentAccount,
         isLoading,
+        isRequestLoading,
+        isApproveLoading,
+        isFulfillLoading,
         sendTransaction,
         requestETH,
         approveRequest,
